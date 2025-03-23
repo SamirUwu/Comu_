@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:name="com.example.AppComu.MainActivity"
+    android:background="#2f0249">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="40sp"
+        android:textStyle="bold"
+        android:text="App-Comu"
+        android:fontFamily="sans-serif-light"
+        android:textColor="#FFFFFF"
+
+        android:paddingBottom="16dp"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:background="#47046d"
+        android:layout_marginBottom="16dp">
+
+        <TextView
+            android:id="@+id/tv_latitude"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Latitud: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/tv_longitude"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Longitud: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/tv_altitude"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Altitud: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/time_stamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Time Stamp: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+    </LinearLayout>
+
+</LinearLayout>
+
+
