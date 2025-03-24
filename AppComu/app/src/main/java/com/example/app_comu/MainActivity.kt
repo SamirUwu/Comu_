@@ -1,34 +1,32 @@
 package com.example.AppComu
 
-import android.widget.Toast
-import android.os.Bundle
-import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import android.Manifest
 import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
+import android.os.Bundle
+import android.util.Log
+import android.widget.TextView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import android.util.Log
-import java.text.SimpleDateFormat
-import java.util.*
 import com.example.app_comu.R
+import com.google.android.gms.location.*
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var locationManager: LocationManager
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
     private lateinit var tvLatitude: TextView
     private lateinit var tvLongitude: TextView
     private lateinit var tvTimestamp: TextView
     private lateinit var message: String
     private val UDP_PORT = 6565
     private val domain = "artemis-s9.ddns.net"
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,34 +36,29 @@ class MainActivity : AppCompatActivity() {
         tvLongitude = findViewById(R.id.tv_longitude)
         tvTimestamp = findViewById(R.id.time_stamp)
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        // Pedir permisos si no están concedidos
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS), 1)
-        }
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            getLocationManager()
-            startLocationUpdates()
         } else {
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
+            startLocationUpdates()
         }
-
-
-    }
-
-    private fun getLocationManager() {
-        locationManager = getSystemService(LOCATION_SERVICE) as LocationManager
     }
 
     private fun startLocationUpdates() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,1000L, 1f, object : LocationListener {
-                override fun onLocationChanged(location: Location) {
+        val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000L)
+            .setMinUpdateIntervalMillis(10000L)
+            .build()
+
+        val locationCallback = object : LocationCallback() {
+            override fun onLocationResult(locationResult: LocationResult) {
+                for (location in locationResult.locations) {
                     val latitude = location.latitude
                     val longitude = location.longitude
-                    val timestamp = location.time // <-- Aquí se obtiene el timestamp del GPS
+                    val timestamp = location.time
                     val formattedTime = SimpleDateFormat("yyyy-MM-dd - HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
 
                     tvTimestamp.text = "Time Stamp: $formattedTime"
@@ -75,13 +68,15 @@ class MainActivity : AppCompatActivity() {
                     Log.d("LOCATION_UPDATE", message)
                     sendUDP(domain)
                 }
+            }
+        }
 
-                override fun onProviderEnabled(provider: String) {}
-                override fun onProviderDisabled(provider: String) {}
-                override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-            })
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, null)
         }
     }
+
+
     private fun resolveDomainName(hostName: String): String? {
         return try {
             val inetAddress = InetAddress.getByName(hostName)
@@ -91,11 +86,13 @@ class MainActivity : AppCompatActivity() {
             null
         }
     }
+
     private fun showToast(message: String) {
         runOnUiThread {
             Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
         }
     }
+
     private fun sendUDP(hostName: String) {
         Thread {
             val ipAddress = resolveDomainName(hostName)
@@ -117,6 +114,7 @@ class MainActivity : AppCompatActivity() {
             }
         }.start()
     }
+
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
