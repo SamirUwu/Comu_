@@ -15,6 +15,9 @@ import android.util.Log
 import java.text.SimpleDateFormat
 import java.util.*
 import com.example.app_comu.R
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
 
 class MainActivity : AppCompatActivity() {
 
@@ -22,8 +25,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvLatitude: TextView
     private lateinit var tvLongitude: TextView
     private lateinit var tvTimestamp: TextView
-    private lateinit var tvAltitude: TextView
     private lateinit var message: String
+    private val UDP_PORT = 6565
+    private val domain = "artemis-s9.ddns.net"
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,7 +37,6 @@ class MainActivity : AppCompatActivity() {
         tvLatitude = findViewById(R.id.tv_latitude)
         tvLongitude = findViewById(R.id.tv_longitude)
         tvTimestamp = findViewById(R.id.time_stamp)
-        tvAltitude = findViewById(R.id.tv_altitude)
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
@@ -61,16 +65,15 @@ class MainActivity : AppCompatActivity() {
                 override fun onLocationChanged(location: Location) {
                     val latitude = location.latitude
                     val longitude = location.longitude
-                    val altitude = location.altitude
                     val timestamp = location.time // <-- Aquí se obtiene el timestamp del GPS
                     val formattedTime = SimpleDateFormat("yyyy-MM-dd - HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
 
                     tvTimestamp.text = "Time Stamp: $formattedTime"
                     tvLatitude.text = "Latitud: $latitude"
                     tvLongitude.text = "Longitud: $longitude"
-                    tvAltitude.text = "Altitude: $altitude"
-                    message = "Latitud: $latitude\nLongitud: $longitude\nAltitude: $altitude\nTimestamp: $formattedTime"
+                    message = "$latitude;$longitude;$formattedTime"
                     Log.d("LOCATION_UPDATE", message)
+                    sendUDP(domain)
                 }
 
                 override fun onProviderEnabled(provider: String) {}
@@ -79,7 +82,41 @@ class MainActivity : AppCompatActivity() {
             })
         }
     }
-
+    private fun resolveDomainName(hostName: String): String? {
+        return try {
+            val inetAddress = InetAddress.getByName(hostName)
+            inetAddress.hostAddress
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+    private fun showToast(message: String) {
+        runOnUiThread {
+            Toast.makeText(this@MainActivity, message, Toast.LENGTH_SHORT).show()
+        }
+    }
+    private fun sendUDP(hostName: String) {
+        Thread {
+            val ipAddress = resolveDomainName(hostName)
+            if (ipAddress == null) {
+                showToast("Failed to resolve DNS for UDP: $hostName")
+                return@Thread
+            }
+            try {
+                val socket = DatagramSocket()
+                val address = InetAddress.getByName(ipAddress)
+                val buf = message.toByteArray()
+                val packet = DatagramPacket(buf, buf.size, address, UDP_PORT)
+                socket.send(packet)
+                socket.close()
+                showToast("Data sent via UDP to $hostName ($ipAddress)")
+            } catch (e: Exception) {
+                e.printStackTrace()
+                showToast("Error sending data via UDP to $hostName")
+            }
+        }.start()
+    }
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
