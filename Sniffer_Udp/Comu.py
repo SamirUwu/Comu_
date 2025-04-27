@@ -7,7 +7,7 @@ import socket
 ENDPOINT = "a1tfh59pi9h3in-ats.iot.us-east-2.amazonaws.com"
 PORT = 8883
 CLIENT_ID = "prueba_python"
-TOPIC = "Comu/topic1"
+TOPIC = "devices/+/gps"
 
 # Archivos convertidos desde el .pfx
 CERTIFICATE_PATH = "certificate.pem.crt"
