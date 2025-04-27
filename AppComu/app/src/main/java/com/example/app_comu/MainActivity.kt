@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvTimestamp: TextView
     private lateinit var message: String
     private val UDP_PORT = 6565
-    private val domain = "artemis-s9.ddns.net"
+    private val domain = "artemis-s7.ddns.net"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
