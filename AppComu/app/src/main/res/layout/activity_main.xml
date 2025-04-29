@@ -44,7 +44,14 @@
             android:text="Longitud: loading..."
             android:textColor="#FFFFFF"
             android:textSize="18sp" />
-
+        
+        <TextView
+            android:id="@+id/tv_altitude"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Altitud: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/time_stamp"
