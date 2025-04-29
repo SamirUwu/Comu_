@@ -17,13 +17,24 @@ const getData = async (callback) => {
   };
 
   try {
-    // Usamos el ScanCommand en lugar de la versión de DocumentClient de v2
     const data = await dynamoDbClient.send(new ScanCommand(params));
-    callback(null, data.Items);
+
+    // Imprimir todo el objeto de respuesta en la terminal
+    console.log("Datos obtenidos de DynamoDB:", JSON.stringify(data, null, 2));
+
+    // Verifica si hay elementos en "data.Items"
+    if (data.Items && data.Items.length > 0) {
+      callback(null, data.Items);
+    } else {
+      callback("No se encontraron elementos", null);
+    }
+
   } catch (err) {
-    console.error("Unable to read item. Error JSON:", JSON.stringify(err, null, 2));
+    console.error("Error al obtener los datos de DynamoDB:", err);
     callback(err, null);
   }
 };
+
+
 
 module.exports = { getData };
