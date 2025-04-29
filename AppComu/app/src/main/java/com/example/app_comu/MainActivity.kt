@@ -34,8 +34,10 @@ class MainActivity : AppCompatActivity() {
 
         tvLatitude = findViewById(R.id.tv_latitude)
         tvLongitude = findViewById(R.id.tv_longitude)
+        tvAltitude = findViewById(R.id.tv_altitude)
         tvTimestamp = findViewById(R.id.time_stamp)
 
+        
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Pedir permisos si no están concedidos
@@ -58,13 +60,15 @@ class MainActivity : AppCompatActivity() {
                 for (location in locationResult.locations) {
                     val latitude = location.latitude
                     val longitude = location.longitude
+                    val altitude = location.altitude
                     val timestamp = location.time
                     val formattedTime = SimpleDateFormat("yyyy-MM-dd - HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
 
                     tvTimestamp.text = "Time Stamp: $formattedTime"
                     tvLatitude.text = "Latitud: $latitude"
                     tvLongitude.text = "Longitud: $longitude"
-                    message = "$latitude;$longitude;$formattedTime"
+                    tvAltitude.text = "Altitud: $altitude"
+                    message = "$latitude;$longitude;$altitude;$formattedTime"
                     Log.d("LOCATION_UPDATE", message)
                     sendUDP(domain)
                 }
