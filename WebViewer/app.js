@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 
 // Importar la función getData de tu archivo DynamoDB.js
-const { getData } = require('./dynamoDB');  // Asegúrate de que la ruta sea correcta
+const { getData } = require('./dynamoDb');  // Asegúrate de que la ruta sea correcta
 
 const app = express();
 const PORT = 80;
