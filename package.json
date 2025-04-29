@@ -18,6 +18,8 @@
   },
   "homepage": "https://github.com/SamirUwu/Comu_#readme",
   "dependencies": {
+    "aws-sdk": "^2.1692.0",
+    "dotenv": "^16.5.0",
     "express": "^5.1.0"
   }
 }
