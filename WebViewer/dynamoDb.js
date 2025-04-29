@@ -13,7 +13,7 @@ const dynamoDb = new AWS.DynamoDB.DocumentClient();
 
 const getData = (callback) => {
   const params = {
-    TableName: 'NombreDeTuTabla'  // Reemplaza por el nombre real
+    TableName: 'Positions'  
   };
 
   dynamoDb.scan(params, (err, data) => {
