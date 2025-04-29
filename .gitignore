@@ -1,7 +1,19 @@
+# Certificados y claves
 *.pem
 *.crt
 
-AppComu/.idea
-AppComu/.kotlin
-AppComu/.gradle
+# Node.js
+node_modules/
+npm-debug.log*
+.env
+
+# Android Studio (AppComu)
+AppComu/.idea/
+AppComu/.kotlin/
+AppComu/.gradle/
 .idea/
+.gradle/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db

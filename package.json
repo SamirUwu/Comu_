@@ -1,0 +1,23 @@
+{
+  "name": "comu_",
+  "version": "1.0.0",
+  "description": "Este es mi trauma de invierno",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamirUwu/Comu_.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SamirUwu/Comu_/issues"
+  },
+  "homepage": "https://github.com/SamirUwu/Comu_#readme",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
