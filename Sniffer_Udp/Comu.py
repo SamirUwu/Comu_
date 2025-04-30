@@ -30,7 +30,7 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((UDP_IP, UDP_PORT))
 
 def send_loc(lat, lon, timestamp):
-    mensaje = json.dumps({"Latitude": lat, "Longitude": lon, "TimeStamp": timestamp})
+    mensaje = json.dumps({"Latitude": lat, "Longitude": lon, "Altitude": alt, "TimeStamp": timestamp})
     result = client.publish(TOPIC, mensaje)
     return result.rc == 0
 
@@ -39,9 +39,10 @@ print(f"Listening on UDP port {UDP_PORT}...")
 while True:
     data, addr = sock.recvfrom(1024)  # Buffer size is 1024 bytes
     message = data.decode('utf-8')
-    lat, lon, timestamp = message.split(';')
+    lat, lon, alt, timestamp = message.split(';')
     lat = lat.replace(',', '.')
     lon = lon.replace(',', '.')
+    alt = alt.replace(',', '.')
     if (send_loc(lat, lon, timestamp)):
         print("Envio correcto")
     else: 
