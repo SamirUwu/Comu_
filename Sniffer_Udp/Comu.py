@@ -2,17 +2,21 @@ import paho.mqtt.client as mqtt
 import ssl
 import json
 import socket
+import os
+from dotenv import load_dotenv
+import os
 
-# Parámetros de conexión
-ENDPOINT = "a1tfh59pi9h3in-ats.iot.us-east-2.amazonaws.com"
-PORT = 8883
-CLIENT_ID = "prueba_python"
-TOPIC = "devices/+/gps"
+load_dotenv()  # Carga las variables del .env
 
-# Archivos convertidos desde el .pfx
-CERTIFICATE_PATH = "certificate.pem.crt"
-PRIVATE_KEY_PATH = "private.pem"
-ROOT_CA_PATH = "AmazonRootCA1.pem" 
+ENDPOINT = os.getenv("ENDPOINT")
+PORT = int(os.getenv("PORT", 8883))  # Valor por defecto si no está en el .env
+CLIENT_ID = os.getenv("CLIENT_ID")
+TOPIC = os.getenv("TOPIC")
+
+CERTIFICATE_PATH = os.getenv("CERTIFICATE_PATH")
+PRIVATE_KEY_PATH = os.getenv("PRIVATE_KEY_PATH")
+ROOT_CA_PATH = os.getenv("ROOT_CA_PATH")
+
 # UDP configuration
 UDP_IP = '0.0.0.0'  # Listen on all interfaces
 UDP_PORT = 6565
@@ -37,6 +41,7 @@ def send_loc(lat, lon, timestamp):
 print(f"Listening on UDP port {UDP_PORT}...")
 
 while True:
+    print(TOPIC)
     data, addr = sock.recvfrom(1024)  # Buffer size is 1024 bytes
     message = data.decode('utf-8')
     lat, lon, alt, timestamp = message.split(';')
