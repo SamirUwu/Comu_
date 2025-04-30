@@ -23,6 +23,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationCallback: LocationCallback
     private lateinit var tvLatitude: TextView
     private lateinit var tvLongitude: TextView
+    private lateinit var tvAltitude: TextView    
     private lateinit var tvTimestamp: TextView
     private lateinit var message: String
     private val UDP_PORT = 6565
