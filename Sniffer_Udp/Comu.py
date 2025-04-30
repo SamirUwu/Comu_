@@ -2,7 +2,6 @@ import paho.mqtt.client as mqtt
 import ssl
 import json
 import socket
-import os
 from dotenv import load_dotenv
 import os
 
@@ -39,9 +38,10 @@ def send_loc(lat, lon, alt, timestamp):
     return result.rc == 0
 
 print(f"Listening on UDP port {UDP_PORT}...")
-
+print("trite")
 while True:
     data, addr = sock.recvfrom(1024)  # Buffer size is 1024 bytes
+    print("la vida es triste")
     message = data.decode('utf-8')
     lat, lon, alt, timestamp = message.split(';')
     lat = lat.replace(',', '.')
@@ -49,6 +49,7 @@ while True:
     alt = alt.replace(',', '.')
     if (send_loc(lat, lon, alt, timestamp)):
         print("Envio correcto")
+        print(lat, lon, alt, timestamp)
     else: 
         print("Life is pain")   
  
