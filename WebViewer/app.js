@@ -29,4 +29,11 @@ app.get('/', (req, res) => {
   );
 });
 
+app.use(express.static(path.join('C:/Users/USUARIO/Documents/Malecon', 'salida'), {
+  etag: false,
+  setHeaders: (res, path) => {
+      res.set('Cache-Control', 'no-store');
+  }
+}));
+
 app.listen(PORT, () => console.log(`Servidor iniciado en http://localhost:${PORT}`));

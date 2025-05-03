@@ -62,9 +62,9 @@ const getData = async () => {
  
       const [xUTM, yUTM] = proj4(wgs84, utm, [lon, lat]);
       console.log(`Pain = ${yUTM}, ${xUTM}` );
-      const relativeX = xUTM - offset[0];
-      const relativeY = yUTM - offset[1];
-      const relativeZ = alt - offset[2];
+      const relativeX = xUTM / 1000
+      const relativeY = yUTM / 1000
+      const relativeZ = alt /1000
 
       console.log(`Coordenadas relativas en Potree: X = ${relativeX}, Y = ${relativeY}, Z = ${relativeZ}`);
 

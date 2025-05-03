@@ -21,10 +21,10 @@ def on_connect(client, userdata, flags, rc):
     if rc == 0:
         # Solo se publica el mensaje si la conexión fue exitosa
         mensaje = json.dumps({
-            "Longitude": "-74.789293",
-            "Latitude": "31.015478",
-            "TimeStamp": "2025-05-01 - 21:51:01",
-            "Altitude": "9.71"
+            "Longitude": "-74.792736",
+            "Latitude": "11.019447",
+            "TimeStamp": "2025-06-01 - 21:51:01",
+            "Altitude": "30.71"
         })
         result = client.publish(TOPIC, mensaje)
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
@@ -61,9 +61,9 @@ client.loop_start()
 while True:
     input("Presiona Enter para enviar un nuevo mensaje...")
     mensaje = json.dumps({
-        "Longitude": "-74.789293",
-        "Latitude": "11.015478",
-        "TimeStamp": "2025-05-01 - 20:45:01",
+        "Longitude": "-74.790258",
+        "Latitude": "11.016615",
+        "TimeStamp": "2025-06-01 - 20:45:01",
         "Altitude": "2.71"
     })
     result = client.publish(TOPIC, mensaje)
