@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Potree Viewer with Dynamic Marker</title>
+
+    <link rel="stylesheet" type="text/css" href="./libs/potree/potree.css">
+    <link rel="stylesheet" type="text/css" href="./libs/jquery-ui/jquery-ui.min.css">
+    <link rel="stylesheet" type="text/css" href="./libs/openlayers3/ol.css">
+    <link rel="stylesheet" type="text/css" href="./libs/spectrum/spectrum.css">
+    <link rel="stylesheet" type="text/css" href="./libs/jstree/themes/mixed/style.css">
+</head>
+<body>
+    <script src="./libs/jquery/jquery-3.1.1.min.js"></script>
+    <script src="./libs/spectrum/spectrum.js"></script>
+    <script src="./libs/jquery-ui/jquery-ui.min.js"></script>
+    <script src="./libs/other/BinaryHeap.js"></script>
+    <script src="./libs/tween/tween.min.js"></script>
+    <script src="./libs/d3/d3.js"></script>
+    <script src="./libs/proj4/proj4.js"></script>
+    <script src="./libs/openlayers3/ol.js"></script>
+    <script src="./libs/i18next/i18next.js"></script>
+    <script src="./libs/jstree/jstree.js"></script>
+    <script src="./libs/potree/potree.js"></script>
+    <script src="./libs/plasio/js/laslaz.js"></script>
+
+    <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px;">
+        <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
+        <div id="potree_sidebar_container"></div>
+    </div>
+
+    <script>
+        // Initialize Potree Viewer
+        window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+        viewer.setEDLEnabled(true);
+        viewer.setFOV(60);
+        viewer.setPointBudget(2_000_000);
+        viewer.loadSettingsFromURL();
+        viewer.setDescription("Dynamic Marker Viewer");
+
+        viewer.loadGUI(() => {
+            viewer.setLanguage('en');
+            $("#menu_appearance").next().show();
+            $("#menu_tools").next().show();
+            $("#menu_clipping").next().show();
+            viewer.toggleSidebar();
+        });
+
+        // Load Point Cloud
+        Potree.loadPointCloud("./pointclouds/nube_malecon/metadata.json", "nube_malecon", e => {
+            let scene = viewer.scene;
+            let pointcloud = e.pointcloud;
+
+            let material = pointcloud.material;
+            material.size = 1;
+            material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
+            material.shape = Potree.PointShape.SQUARE;
+            material.activeAttributeName = "rgba";
+
+            scene.addPointCloud(pointcloud);
+            viewer.fitToScreen();
+
+            // Initialize Measuring Tool and Create Marker
+            const measuringTool = new Potree.MeasuringTool(viewer);
+            const measure = measuringTool.startInsertion({
+                showDistances: false,
+                showAngles: false,
+                showCoordinates: true, // Show coordinates as a label
+                showArea: false,
+                showCircle: false,
+                showHeight: false,
+                showAzimuth: false,
+                showEdges: false,
+                maxMarkers: 1, // Single marker
+                name: "Dynamic Marker"
+            });
+
+            // Customize Marker Appearance
+            measure.spheres[0].material.color.setHex(0xff0000); // Red color for visibility
+            measure.spheres[0].scale.set(5, 5, 5); // Larger sphere for visibility
+
+            // Function to Update Marker Position
+            function updateMarkerPosition(x, y, z) {
+                if (measure.points.length > 0) {
+                    // Convert coordinates to point cloud's unit system (meters to millimeters)
+                    const scale = 1000; // 1 meter = 1000 units (based on metadata scale [0.001])
+                    measure.points[0].position.set(x * scale, y * scale, z * scale);
+                    measure.spheres[0].position.set(x * scale, y * scale, z * scale);
+                    measure.update(); // Update visuals
+                    viewer.renderer.render(viewer.scene.scene, viewer.scene.getActiveCamera());
+                    console.log(`Marker updated to: X=${x * scale}, Y=${y * scale}, Z=${z * scale}`);
+                } else {
+                    console.warn("No marker points available to update");
+                }
+            }
+
+            // Poll Data from API
+            function pollData() {
+                fetch('/api/latestPoint')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data && data.x !== undefined && data.y !== undefined && data.z !== undefined) {
+                            console.log(`Received coordinates: X=${data.x}, Y=${data.y}, Z=${data.z}`);
+                            updateMarkerPosition(data.x, data.y, data.z);
+                        } else {
+                            console.warn('Invalid data received:', data);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+            }
+
+            // Poll every 5 seconds
+            setInterval(pollData, 5000);
+            pollData(); // Initial call
+        });
+    </script>
+</body>
+</html>
