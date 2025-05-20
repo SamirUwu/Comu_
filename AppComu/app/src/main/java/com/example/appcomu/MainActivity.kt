@@ -1,7 +1,9 @@
-package com.example.AppComu
+package com.example.appcomu
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
@@ -9,7 +11,6 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.app_comu.R
 import com.google.android.gms.location.*
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -38,7 +39,6 @@ class MainActivity : AppCompatActivity() {
         tvAltitude = findViewById(R.id.tv_altitude)
         tvTimestamp = findViewById(R.id.time_stamp)
 
-        
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Pedir permisos si no están concedidos
@@ -49,6 +49,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun startLocationService() {
+        val intent = Intent(this, LocationService::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+}
     private fun startLocationUpdates() {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -124,6 +132,7 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             startLocationUpdates()
+            startLocationService()
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.example.app_comu
+package com.example.appcomu
 
 import org.junit.Test
 

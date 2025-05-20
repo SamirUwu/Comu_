@@ -48,12 +48,14 @@ const getData = async () => {
       const lon = parseFloat(mapData.Longitude.S);
       const alt = parseFloat(mapData.Altitude?.S || '0');
       const time = mapData.TimeStamp.S;
+      const velocity = parseFloat(mapData.Velocity?.S || '0');
 
       console.log('Último dato:');
       console.log(`Latitud: ${lat}`);
       console.log(`Longitud: ${lon}`);
       console.log(`Altitud: ${alt}`);
       console.log(`Timestamp: ${time}`);
+      console.log(`Velocity: ${velocity}`);
 
       // Proyección
       const wgs84 = 'EPSG:4326';
@@ -68,7 +70,7 @@ const getData = async () => {
 
       console.log(`Coordenadas relativas en Potree: X = ${relativeX}, Y = ${relativeY}, Z = ${relativeZ}`);
 
-      return { x: relativeX, y: relativeY, z: relativeZ };
+      return { x: relativeX, y: relativeY, z: relativeZ, velocity };
     } else {
       console.log('No se encontraron datos en la tabla.');
       return null;

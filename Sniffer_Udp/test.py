@@ -23,6 +23,7 @@ def on_connect(client, userdata, flags, rc):
             "Longitude": "-74.789442",
             "Latitude": "11.015667",
             "TimeStamp": "2025-06-01 - 21:52:01",
+            "Velocity": "20",
             "Altitude": "30.71"
         })
         result = client.publish(TOPIC, mensaje)

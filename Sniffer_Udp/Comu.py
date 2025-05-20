@@ -38,12 +38,13 @@ client.loop_start()  # ¡Esto es clave!
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((UDP_IP, UDP_PORT))
 
-def send_loc(lat, lon, alt, timestamp):
+def send_loc(lat, lon, alt, vel ,timestamp):
     mensaje = json.dumps({
         "Latitude": lat,
         "Longitude": lon,
         "Altitude": alt,
-        "TimeStamp": timestamp
+        "Velocity": vel,
+        "TimeStamp": timestamp,
     })
     result = client.publish(TOPIC, mensaje)
     result.wait_for_publish()  # Esperar confirmación
@@ -53,12 +54,13 @@ print(f"Listening on UDP port {UDP_PORT}...")
 while True:
     data, addr = sock.recvfrom(1024)
     message = data.decode('utf-8')
-    lat, lon, alt, timestamp = message.split(';')
+    lat, lon, alt, vel, timestamp = message.split(';')
     lat = lat.replace(',', '.')
     lon = lon.replace(',', '.')
     alt = alt.replace(',', '.')
+    vel = vel.replace(',', '.')
 
-    if send_loc(lat, lon, alt, timestamp):
-        print("Envio correcto:", lat, lon, alt, timestamp)
+    if send_loc(lat, lon, alt, vel, timestamp):
+        print("Envio correcto:", lat, lon, alt, vel, timestamp)
     else:
         print("Life is pain")

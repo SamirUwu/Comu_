@@ -6,8 +6,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="24dp"
-    android:name="com.example.AppComu.MainActivity"
     android:background="#2f0249">
+
 
     <TextView
         android:layout_width="match_parent"
