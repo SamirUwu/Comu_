@@ -20,9 +20,9 @@ def on_connect(client, userdata, flags, rc):
     print(f"Conectado con el código de resultado: {rc}")
     if rc == 0:
         mensaje = json.dumps({
-            "Longitude": "-74.789442",
-            "Latitude": "11.015667",
-            "TimeStamp": "2025-06-01 - 21:52:01",
+            "Longitude": "-74.787693",
+            "Latitude": "11.013782",
+            "TimeStamp": "2025-06-02 - 21:54:01",
             "Velocity": "20",
             "Altitude": "30.71"
         })
