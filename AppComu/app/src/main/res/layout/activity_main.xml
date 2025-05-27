@@ -6,8 +6,8 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:padding="24dp"
+    android:name="com.example.AppComu.MainActivity"
     android:background="#2f0249">
-
 
     <TextView
         android:layout_width="match_parent"
@@ -18,7 +18,6 @@
         android:text="App-Comu"
         android:fontFamily="sans-serif-light"
         android:textColor="#FFFFFF"
-
         android:paddingBottom="16dp"/>
 
     <LinearLayout
@@ -44,12 +43,28 @@
             android:text="Longitud: loading..."
             android:textColor="#FFFFFF"
             android:textSize="18sp" />
-        
+
         <TextView
             android:id="@+id/tv_altitude"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Altitud: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/tv_velocity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Velocity: loading..."
+            android:textColor="#FFFFFF"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/tv_steps"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Pasos: loading"
             android:textColor="#FFFFFF"
             android:textSize="18sp" />
 
@@ -63,5 +78,3 @@
     </LinearLayout>
 
 </LinearLayout>
-
-

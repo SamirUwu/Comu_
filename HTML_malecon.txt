@@ -12,6 +12,27 @@
     <link rel="stylesheet" type="text/css" href="./libs/openlayers3/ol.css">
     <link rel="stylesheet" type="text/css" href="./libs/spectrum/spectrum.css">
     <link rel="stylesheet" type="text/css" href="./libs/jstree/themes/mixed/style.css">
+
+    <style>
+        #info-display {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10000;
+            line-height: 1.5;
+        }
+
+        .potree_container {
+            position: relative;
+            z-index: 0;
+        }
+    </style>
 </head>
 <body>
     <script src="./libs/jquery/jquery-3.1.1.min.js"></script>
@@ -30,10 +51,16 @@
     <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px;">
         <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
         <div id="potree_sidebar_container"></div>
+        <div id="info-display">
+            <div>Velocity: 0 m/s</div>
+            <div>Distance: 0 m</div>
+            <div>Temperature: N/A °C</div>
+            <div>Wind Speed: N/A m/s</div>
+            <div>Humidity: N/A %</div>
+        </div>
     </div>
 
     <script>
-        // Initialize Potree Viewer
         window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
@@ -49,47 +76,49 @@
             viewer.toggleSidebar();
         });
 
-        // Load Point Cloud
         Potree.loadPointCloud("./pointclouds/nube_malecon/metadata.json", "nube_malecon", e => {
             let scene = viewer.scene;
             let pointcloud = e.pointcloud;
-
             let material = pointcloud.material;
+
+            material.activeAttributeName = "composite";
+            material.weightRGB = 0;
+            material.weightElevation = 1;
+            material.weightIntensity = 1;
             material.size = 1;
             material.pointSizeType = Potree.PointSizeType.ADAPTIVE;
-            material.shape = Potree.PointShape.SQUARE;
-            material.activeAttributeName = "rgba";
+            material.shape = Potree.PointShape.PARABOLOID;
+
+            if (pointcloud.projection == "") {
+                pointcloud.projection = "+proj=utm +zone=18 +datum=WGS84 +units=m +no_defs +type=crs";
+            }
 
             scene.addPointCloud(pointcloud);
             viewer.fitToScreen();
 
-            // Initialize Measuring Tool and Create Marker
             const measuringTool = new Potree.MeasuringTool(viewer);
             const measure = measuringTool.startInsertion({
                 showDistances: false,
                 showAngles: false,
-                showCoordinates: true, // Show coordinates as a label
+                showCoordinates: true,
                 showArea: false,
                 showCircle: false,
                 showHeight: false,
                 showAzimuth: false,
                 showEdges: false,
-                maxMarkers: 1, // Single marker
+                maxMarkers: 1,
                 name: "Dynamic Marker"
             });
 
-            // Customize Marker Appearance
-            measure.spheres[0].material.color.setHex(0xff0000); // Red color for visibility
-            measure.spheres[0].scale.set(5, 5, 5); // Larger sphere for visibility
+            measure.spheres[0].material.color.setHex(0xff0000);
+            measure.spheres[0].scale.set(5, 5, 5);
 
-            // Function to Update Marker Position
             function updateMarkerPosition(x, y, z) {
                 if (measure.points.length > 0) {
-                    // Convert coordinates to point cloud's unit system (meters to millimeters)
-                    const scale = 1000; // 1 meter = 1000 units (based on metadata scale [0.001])
+                    const scale = 1000;
                     measure.points[0].position.set(x * scale, y * scale, z * scale);
                     measure.spheres[0].position.set(x * scale, y * scale, z * scale);
-                    measure.update(); // Update visuals
+                    measure.update();
                     viewer.renderer.render(viewer.scene.scene, viewer.scene.getActiveCamera());
                     console.log(`Marker updated to: X=${x * scale}, Y=${y * scale}, Z=${z * scale}`);
                 } else {
@@ -97,19 +126,43 @@
                 }
             }
 
-            // Poll Data from API
             function pollData() {
                 fetch('/api/latestPoint')
                     .then(response => {
+                        console.log('Fetch response status:', response.status);
                         if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
+                            return response.json().then(err => {
+                                throw new Error(`HTTP error! status: ${response.status}, message: ${err.error || 'Unknown'}`);
+                            });
                         }
                         return response.json();
                     })
                     .then(data => {
+                        console.log('Received data:', data);
                         if (data && data.x !== undefined && data.y !== undefined && data.z !== undefined) {
                             console.log(`Received coordinates: X=${data.x}, Y=${data.y}, Z=${data.z}`);
+                            console.log(`Received velocity: ${data.velocity}`); 
+                            console.log(`Received distance: ${data.distance}`);
+                            console.log(`Received weather: Temperature=${data.weather.temperature}°C, Wind Speed=${data.weather.windSpeed}m/s, Humidity=${data.weather.humidity}%`);
                             updateMarkerPosition(data.x, data.y, data.z);
+                            const velocity = data.velocity !== undefined ? data.velocity : 0;
+                            const distance = data.distance !== undefined ? data.distance : 0;
+                            const temperature = data.weather.temperature !== 'N/A' ? data.weather.temperature : 'N/A';
+                            const windSpeed = data.weather.windSpeed !== 'N/A' ? data.weather.windSpeed : 'N/A';
+                            const humidity = data.weather.humidity !== 'N/A' ? data.weather.humidity : 'N/A';
+                            const velocityText = `Velocity: ${velocity.toFixed(2)} m/s`;
+                            const distanceText = `Distance: ${distance.toFixed(2)} m`;
+                            const temperatureText = `Temperature: ${temperature} °C`;
+                            const windSpeedText = `Wind Speed: ${windSpeed} m/s`;
+                            const humidityText = `Humidity: ${humidity} %`;
+                            console.log(`Updating display - ${velocityText}, ${distanceText}, ${temperatureText}, ${windSpeedText}, ${humidityText}`);
+                            document.getElementById('info-display').innerHTML = `
+                                <div>${velocityText}</div>
+                                <div>${distanceText}</div>
+                                <div>${temperatureText}</div>
+                                <div>${windSpeedText}</div>
+                                <div>${humidityText}</div>
+                            `;
                         } else {
                             console.warn('Invalid data received:', data);
                         }
@@ -119,9 +172,8 @@
                     });
             }
 
-            // Poll every 5 seconds
             setInterval(pollData, 5000);
-            pollData(); // Initial call
+            pollData();
         });
     </script>
 </body>

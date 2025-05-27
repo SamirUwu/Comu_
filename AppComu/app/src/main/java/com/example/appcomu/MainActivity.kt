@@ -1,9 +1,11 @@
-package com.example.appcomu
+package com.example.AppComu
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.os.Build
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
@@ -11,6 +13,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.example.app_comu.R
 import com.google.android.gms.location.*
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -24,8 +27,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var locationCallback: LocationCallback
     private lateinit var tvLatitude: TextView
     private lateinit var tvLongitude: TextView
-    private lateinit var tvAltitude: TextView    
+    private lateinit var tvAltitude: TextView
     private lateinit var tvTimestamp: TextView
+    private lateinit var tvVelocity: TextView
+    private lateinit var tvSteps: TextView
+    private lateinit var sensorManager: SensorManager
+    private var stepSensor: Sensor? = null
+    private var stepCount = 0
+    private var initialStepCount: Int? = null  // Nuevo: valor inicial para pasos
     private lateinit var message: String
     private val UDP_PORT = 6565
     private val domain = "artemis-s7.ddns.net"
@@ -37,31 +46,56 @@ class MainActivity : AppCompatActivity() {
         tvLatitude = findViewById(R.id.tv_latitude)
         tvLongitude = findViewById(R.id.tv_longitude)
         tvAltitude = findViewById(R.id.tv_altitude)
+        tvVelocity = findViewById(R.id.tv_velocity)
+        tvSteps = findViewById(R.id.tv_steps)
         tvTimestamp = findViewById(R.id.time_stamp)
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // Pedir permisos si no están concedidos
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACTIVITY_RECOGNITION), 2)
+        }
+
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1)
         } else {
             startLocationUpdates()
         }
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+
+        if (stepSensor == null) {
+            showToast("Step counter sensor not available")
+        } else {
+            sensorManager.registerListener(object : SensorEventListener {
+                override fun onSensorChanged(event: SensorEvent) {
+                    val totalSteps = event.values[0].toInt()
+
+                    if (initialStepCount == null) {
+                        initialStepCount = totalSteps
+                    }
+
+                    stepCount = totalSteps - (initialStepCount ?: totalSteps)
+                    Log.d("STEPS", "Total steps sensor: $totalSteps")
+                    Log.d("STEPS", "Steps count (adjusted): $stepCount")
+
+                    runOnUiThread {
+                        tvSteps.text = "Pasos: $stepCount"
+                    }
+                }
+
+                override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+            }, stepSensor, SensorManager.SENSOR_DELAY_NORMAL)
+        }
+
     }
 
-    private fun startLocationService() {
-        val intent = Intent(this, LocationService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
-}
     private fun startLocationUpdates() {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 10000L)
-            .setMinUpdateIntervalMillis(10000L)
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
+            .setMinUpdateIntervalMillis(2000L)
             .build()
 
         val locationCallback = object : LocationCallback() {
@@ -71,14 +105,21 @@ class MainActivity : AppCompatActivity() {
                     val longitude = location.longitude
                     val altitude = location.altitude
                     val timestamp = location.time
+                    val hasSpeed = location.hasSpeed()
+                    val velocity = if (hasSpeed) location.speed else -1f  // -1 indica "no disponible"
                     val formattedTime = SimpleDateFormat("yyyy-MM-dd - HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
 
                     tvTimestamp.text = "Time Stamp: $formattedTime"
                     tvLatitude.text = "Latitud: $latitude"
                     tvLongitude.text = "Longitud: $longitude"
                     tvAltitude.text = "Altitud: $altitude"
-                    message = "$latitude;$longitude;$altitude;$formattedTime"
+                    tvVelocity.text = if (hasSpeed)
+                        "Velocidad: %.2f m/s".format(velocity)
+                    else
+                        "Velocidad no disponible"
+                    message = "$latitude;$longitude;$altitude;$velocity;$formattedTime;$stepCount"
                     Log.d("LOCATION_UPDATE", message)
+                    showToast("hasSpeed: $hasSpeed, speed: $velocity m/s")
                     sendUDP(domain)
                 }
             }
@@ -132,7 +173,6 @@ class MainActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == 1 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
             startLocationUpdates()
-            startLocationService()
         }
     }
 }
