@@ -45,7 +45,7 @@ def send_loc(lat, lon, alt, vel, timestamp, steps):
         "Altitude": alt,
         "Velocity": vel,
         "TimeStamp": timestamp,
-        "StepCount": steps,
+        "StepCount": steps
     })
     result = client.publish(TOPIC, mensaje)
     result.wait_for_publish()  # Esperar confirmación
@@ -60,7 +60,6 @@ while True:
     lon = lon.replace(',', '.')
     alt = alt.replace(',', '.')
     vel = vel.replace(',', '.')
-    steps = steps.replace(',', '.')
 
     if send_loc(lat, lon, alt, vel, timestamp, steps):
         print("Envio correcto:", lat, lon, alt, vel, timestamp, steps)

@@ -54,6 +54,7 @@
         <div id="info-display">
             <div>Velocity: 0 m/s</div>
             <div>Distance: 0 m</div>
+            <div>Steps: 0</div>
             <div>Temperature: N/A °C</div>
             <div>Wind Speed: N/A m/s</div>
             <div>Humidity: N/A %</div>
@@ -143,22 +144,26 @@
                             console.log(`Received coordinates: X=${data.x}, Y=${data.y}, Z=${data.z}`);
                             console.log(`Received velocity: ${data.velocity}`); 
                             console.log(`Received distance: ${data.distance}`);
+                            console.log(`Received steps: ${data.steps}`);
                             console.log(`Received weather: Temperature=${data.weather.temperature}°C, Wind Speed=${data.weather.windSpeed}m/s, Humidity=${data.weather.humidity}%`);
                             updateMarkerPosition(data.x, data.y, data.z);
                             const velocity = data.velocity !== undefined ? data.velocity : 0;
                             const distance = data.distance !== undefined ? data.distance : 0;
+                            const steps = data.steps !== undefined ? data.steps : 0;
                             const temperature = data.weather.temperature !== 'N/A' ? data.weather.temperature : 'N/A';
                             const windSpeed = data.weather.windSpeed !== 'N/A' ? data.weather.windSpeed : 'N/A';
                             const humidity = data.weather.humidity !== 'N/A' ? data.weather.humidity : 'N/A';
                             const velocityText = `Velocity: ${velocity.toFixed(2)} m/s`;
                             const distanceText = `Distance: ${distance.toFixed(2)} m`;
+                            const stepsText = `Steps: ${Math.round(steps)}`;
                             const temperatureText = `Temperature: ${temperature} °C`;
                             const windSpeedText = `Wind Speed: ${windSpeed} m/s`;
                             const humidityText = `Humidity: ${humidity} %`;
-                            console.log(`Updating display - ${velocityText}, ${distanceText}, ${temperatureText}, ${windSpeedText}, ${humidityText}`);
+                            console.log(`Updating display - ${velocityText}, ${distanceText}, ${stepsText}, ${temperatureText}, ${windSpeedText}, ${humidityText}`);
                             document.getElementById('info-display').innerHTML = `
                                 <div>${velocityText}</div>
                                 <div>${distanceText}</div>
+                                <div>${stepsText}</div>
                                 <div>${temperatureText}</div>
                                 <div>${windSpeedText}</div>
                                 <div>${humidityText}</div>
@@ -172,7 +177,7 @@
                     });
             }
 
-            setInterval(pollData, 5000);
+            setInterval(pollData, 1000);
             pollData();
         });
     </script>

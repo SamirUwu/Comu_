@@ -1,4 +1,3 @@
-// dynamodb.js
 require('dotenv').config();
 const { DynamoDBClient, ScanCommand } = require('@aws-sdk/client-dynamodb');
 const proj4 = require('proj4');
@@ -16,6 +15,7 @@ let lastLat = null;
 let lastLon = null;
 let lastTimestamp = null;
 let totalDistance = 0;
+let totalSteps = 0; // Mantenemos para posibles usos futuros
 
 // Fórmula de Haversine (en metros)
 function haversine(lat1, lon1, lat2, lon2) {
@@ -30,7 +30,7 @@ function haversine(lat1, lon1, lat2, lon2) {
 
 /**
  * getData: consulta DynamoDB, calcula coordenadas relativas
- * y retorna un objeto { x, y, z, velocity, distance, lat, lon }.
+ * y retorna un objeto { x, y, z, velocity, distance, steps, lat, lon }.
  */
 const getData = async () => {
   const params = { TableName: 'Positions' };
@@ -41,21 +41,54 @@ const getData = async () => {
 
     if (data.Items && data.Items.length > 0) {
       const items = data.Items.map(item => {
+        console.log('Procesando ítem:', JSON.stringify(item, null, 2));
+
         const mapData = item['Latitude, Longitude, TimeStamp']?.M;
-        if (!mapData) return null;
+        if (!mapData) {
+          console.warn('Mapa Latitude, Longitude, TimeStamp no encontrado en ítem:', item);
+          return null;
+        }
 
         const timestampRaw = mapData.TimeStamp?.S;
-        const timestamp = timestampRaw ? new Date(timestampRaw.replace(' - ', 'T') + 'Z') : null;
-        if (!timestamp || isNaN(timestamp)) return null;
+        if (!timestampRaw) {
+          console.warn('TimeStamp no encontrado en mapData:', mapData);
+          return null;
+        }
+
+        const timestamp = new Date(timestampRaw.replace(' - ', 'T') + 'Z');
+        if (isNaN(timestamp)) {
+          console.warn('No se pudo parsear TimeStamp:', timestampRaw);
+          return null;
+        }
+
+        if (!mapData.Latitude?.S || !mapData.Longitude?.S) {
+          console.warn('Latitude o Longitude no encontrados en mapData:', mapData);
+          return null;
+        }
 
         return {
-          lat: parseFloat(mapData.Latitude?.S),
-          lon: parseFloat(mapData.Longitude?.S),
+          lat: parseFloat(mapData.Latitude.S),
+          lon: parseFloat(mapData.Longitude.S),
           alt: parseFloat(mapData.Altitude?.S || '0'),
           velocity: parseFloat(mapData.Velocity?.S || '0'),
+          steps: parseFloat(mapData.StepCount?.S || '0'),
           timestamp
         };
       }).filter(Boolean);
+
+      if (items.length === 0) {
+        console.log('No se encontraron ítems válidos después de parsear.');
+        return {
+          x: 0,
+          y: 0,
+          z: 0,
+          velocity: 0,
+          steps: 0, // Retornar 0 si no hay ítems válidos
+          distance: totalDistance,
+          lat: 0,
+          lon: 0
+        };
+      }
 
       // Ordenar por timestamp de más antiguo a más reciente
       const sorted = items.sort((a, b) => a.timestamp - b.timestamp);
@@ -67,44 +100,34 @@ const getData = async () => {
 
       if (newPoints.length === 0) {
         console.log('No hay nuevos puntos, retornando el último punto conocido.');
-        // Retornar el último punto conocido si existe
-        if (sorted.length > 0) {
-          const latest = sorted[sorted.length - 1];
-          const wgs84 = 'EPSG:4326';
-          const utm = 'EPSG:32618';
-          const offset = [521755.49180625769, 1214558.2817465025, 23.819908644322823];
+        const latest = sorted[sorted.length - 1];
+        const wgs84 = 'EPSG:4326';
+        const utm = 'EPSG:32618';
+        const offset = [521755.49180625769, 1214558.2817465025, 23.819908644322823];
 
-          const [xUTM, yUTM] = proj4(wgs84, utm, [latest.lon, latest.lat]);
-          const relativeX = xUTM / 1000;
-          const relativeY = yUTM / 1000;
-          const relativeZ = latest.alt / 1000;
+        const [xUTM, yUTM] = proj4(wgs84, utm, [latest.lon, latest.lat]);
+        const relativeX = xUTM / 1000;
+        const relativeY = yUTM / 1000;
+        const relativeZ = latest.alt / 1000;
 
-          console.log('Último dato (sin nuevos puntos):');
-          console.log(`Latitud: ${latest.lat}`);
-          console.log(`Longitud: ${latest.lon}`);
-          console.log(`Altitud: ${latest.alt}`);
-          console.log(`Timestamp: ${latest.timestamp.toISOString()}`);
-          console.log(`Velocity: ${latest.velocity}`);
-          console.log(`Coordenadas relativas en Potree: X = ${relativeX}, Y = ${relativeY}, Z = ${relativeZ}`);
+        console.log('Último dato (sin nuevos puntos):');
+        console.log(`Latitud: ${latest.lat}`);
+        console.log(`Longitud: ${latest.lon}`);
+        console.log(`Altitud: ${latest.alt}`);
+        console.log(`Timestamp: ${latest.timestamp.toISOString()}`);
+        console.log(`Velocity: ${latest.velocity}`);
+        console.log(`Steps: ${latest.steps}`);
+        console.log(`Coordenadas relativas en Potree: X = ${relativeX}, Y = ${relativeY}, Z = ${relativeZ}`);
 
-          return {
-            x: relativeX,
-            y: relativeY,
-            z: relativeZ,
-            velocity: latest.velocity,
-            distance: totalDistance,
-            lat: latest.lat,
-            lon: latest.lon
-          };
-        }
         return {
-          x: 0,
-          y: 0,
-          z: 0,
-          velocity: 0,
+          x: relativeX,
+          y: relativeY,
+          z: relativeZ,
+          velocity: latest.velocity,
           distance: totalDistance,
-          lat: 0,
-          lon: 0
+          steps: latest.steps, // Usar el StepCount del último punto
+          lat: latest.lat,
+          lon: latest.lon
         };
       }
 
@@ -112,8 +135,10 @@ const getData = async () => {
         if (lastLat !== null && lastLon !== null) {
           const dist = haversine(lastLat, lastLon, point.lat, point.lon);
           totalDistance += dist;
+          // No acumulamos totalSteps aquí; usaremos latest.steps
           console.log(`Distancia desde el último punto: ${dist.toFixed(2)} m`);
           console.log(`Distancia total acumulada: ${totalDistance.toFixed(2)} m`);
+          console.log(`StepCount actual: ${point.steps}`);
         }
 
         lastLat = point.lat;
@@ -139,6 +164,7 @@ const getData = async () => {
       console.log(`Altitud: ${latest.alt}`);
       console.log(`Timestamp: ${latest.timestamp.toISOString()}`);
       console.log(`Velocity: ${latest.velocity}`);
+      console.log(`Steps: ${latest.steps}`);
       console.log(`Coordenadas relativas en Potree: X = ${relativeX}, Y = ${relativeY}, Z = ${relativeZ}`);
 
       return {
@@ -147,6 +173,7 @@ const getData = async () => {
         z: relativeZ,
         velocity: latest.velocity,
         distance: totalDistance,
+        steps: latest.steps, // Usar el StepCount del último punto
         lat: latest.lat,
         lon: latest.lon
       };
@@ -157,6 +184,7 @@ const getData = async () => {
         y: 0,
         z: 0,
         velocity: 0,
+        steps: 0,
         distance: totalDistance,
         lat: 0,
         lon: 0
@@ -169,6 +197,7 @@ const getData = async () => {
       y: 0,
       z: 0,
       velocity: 0,
+      steps: 0,
       distance: totalDistance,
       lat: 0,
       lon: 0
