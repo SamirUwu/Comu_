@@ -22,9 +22,10 @@ def on_connect(client, userdata, flags, rc):
         mensaje = json.dumps({
             "Longitude": "-74.787693",
             "Latitude": "11.013782",
-            "TimeStamp": "2025-06-02 - 21:54:01",
+            "TimeStamp": "2025-05-02 - 21:54:01",
             "Velocity": "20",
-            "Altitude": "30.71"
+            "Altitude": "30.71",
+            "StepCount": "100",
         })
         result = client.publish(TOPIC, mensaje)
         if result.rc == mqtt.MQTT_ERR_SUCCESS:
