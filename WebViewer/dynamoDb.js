@@ -154,9 +154,9 @@ const getData = async () => {
       const offset = [521755.49180625769, 1214558.2817465025, 23.819908644322823];
 
       const [xUTM, yUTM] = proj4(wgs84, utm, [latest.lon, latest.lat]);
-      const relativeX = xUTM / 1000;
-      const relativeY = yUTM / 1000;
-      const relativeZ = latest.alt / 1000;
+      const relativeX = xUTM / 1;
+      const relativeY = yUTM / 1;
+      const relativeZ = latest.alt / 1;
 
       console.log('Último dato:');
       console.log(`Latitud: ${latest.lat}`);

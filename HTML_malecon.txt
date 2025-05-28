@@ -12,20 +12,62 @@
     <link rel="stylesheet" type="text/css" href="./libs/openlayers3/ol.css">
     <link rel="stylesheet" type="text/css" href="./libs/spectrum/spectrum.css">
     <link rel="stylesheet" type="text/css" href="./libs/jstree/themes/mixed/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     <style>
         #info-display {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-family: Arial, sans-serif;
-            font-size: 14px;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 255, 136, 0.656);
+            color: #333;
+            padding: 15px 20px;
+            border-radius: 12px;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-size: 15px;
             z-index: 10000;
-            line-height: 1.5;
+            line-height: 1.6;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            min-width: 240px;
+            opacity: 1;
+            transition: opacity 1s ease-in-out;
+        }
+
+        #info-display.fade {
+            opacity: 0;
+        }
+
+        #info-display div {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px; /* un poco más */
+        gap: 4px; /* espacio horizontal entre ícono y texto */
+        }
+
+        #info-display i {
+        margin-right: 10px;
+        width: 24px; /* antes 20px */
+        min-width: 24px;
+        text-align: center;
+        color: #555;
+        }
+
+        #info-display .weather-section {
+            border-top: 1px solid #ccc;
+            margin-top: 12px;
+            padding-top: 12px;
+        }
+
+        .weather-main {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .weather-main img {
+            width: 60px;
+            height: 60px;
+            margin-right: 12px;
         }
 
         .potree_container {
@@ -51,15 +93,20 @@
     <div class="potree_container" style="position: absolute; width: 100%; height: 100%; left: 0px; top: 0px;">
         <div id="potree_render_area" style="background-image: url('./libs/potree/resources/images/background.jpg');"></div>
         <div id="potree_sidebar_container"></div>
-        <div id="info-display">
-            <div>Velocity: 0 m/s</div>
-            <div>Distance: 0 m</div>
-            <div>Steps: 0</div>
-            <div>Temperature: N/A °C</div>
-            <div>Wind Speed: N/A m/s</div>
-            <div>Humidity: N/A %</div>
+    <div id="info-display">
+        <div class="general-info">
+            <div><i class="fas fa-tachometer-alt"></i> Velocity: 0 m/s</div>
+            <div><i class="fas fa-ruler"></i> Distance: 0 m</div>
+            <div><i class="fas fa-shoe-prints"></i> Steps: 0</div>
+        </div>
+        <div class="weather-info" style="margin-top: 12px; border-top: 1px solid #ccc; padding-top: 10px;">
+            <div><i class="fas fa-thermometer-half"></i> Temperature: N/A °C</div>
+            <div><i class="fas fa-wind"></i> Wind Speed: N/A m/s</div>
+            <div><i class="fas fa-tint"></i> Humidity: N/A %</div>
         </div>
     </div>
+
+
 
     <script>
         window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
@@ -67,7 +114,7 @@
         viewer.setFOV(60);
         viewer.setPointBudget(2_000_000);
         viewer.loadSettingsFromURL();
-        viewer.setDescription("Dynamic Marker Viewer");
+        //viewer.setDescription("Dynamic Marker Viewer");
 
         viewer.loadGUI(() => {
             viewer.setLanguage('en');
@@ -114,70 +161,90 @@
             measure.spheres[0].material.color.setHex(0xff0000);
             measure.spheres[0].scale.set(5, 5, 5);
 
-            function updateMarkerPosition(x, y, z) {
-                if (measure.points.length > 0) {
-                    const scale = 1000;
-                    measure.points[0].position.set(x * scale, y * scale, z * scale);
-                    measure.spheres[0].position.set(x * scale, y * scale, z * scale);
-                    measure.update();
-                    viewer.renderer.render(viewer.scene.scene, viewer.scene.getActiveCamera());
-                    console.log(`Marker updated to: X=${x * scale}, Y=${y * scale}, Z=${z * scale}`);
-                } else {
-                    console.warn("No marker points available to update");
-                }
-            }
-
             function pollData() {
-                fetch('/api/latestPoint')
+                fetch('http://localhost:80/api/latestPoint')
                     .then(response => {
                         console.log('Fetch response status:', response.status);
-                        if (!response.ok) {
-                            return response.json().then(err => {
-                                throw new Error(`HTTP error! status: ${response.status}, message: ${err.error || 'Unknown'}`);
-                            });
-                        }
+                        if (!response.ok) throw new Error('Network response was not ok');
                         return response.json();
                     })
                     .then(data => {
                         console.log('Received data:', data);
                         if (data && data.x !== undefined && data.y !== undefined && data.z !== undefined) {
-                            console.log(`Received coordinates: X=${data.x}, Y=${data.y}, Z=${data.z}`);
-                            console.log(`Received velocity: ${data.velocity}`); 
-                            console.log(`Received distance: ${data.distance}`);
-                            console.log(`Received steps: ${data.steps}`);
-                            console.log(`Received weather: Temperature=${data.weather.temperature}°C, Wind Speed=${data.weather.windSpeed}m/s, Humidity=${data.weather.humidity}%`);
-                            updateMarkerPosition(data.x, data.y, data.z);
-                            const velocity = data.velocity !== undefined ? data.velocity : 0;
-                            const distance = data.distance !== undefined ? data.distance : 0;
-                            const steps = data.steps !== undefined ? data.steps : 0;
-                            const temperature = data.weather.temperature !== 'N/A' ? data.weather.temperature : 'N/A';
-                            const windSpeed = data.weather.windSpeed !== 'N/A' ? data.weather.windSpeed : 'N/A';
-                            const humidity = data.weather.humidity !== 'N/A' ? data.weather.humidity : 'N/A';
-                            const velocityText = `Velocity: ${velocity.toFixed(2)} m/s`;
-                            const distanceText = `Distance: ${distance.toFixed(2)} m`;
-                            const stepsText = `Steps: ${Math.round(steps)}`;
-                            const temperatureText = `Temperature: ${temperature} °C`;
-                            const windSpeedText = `Wind Speed: ${windSpeed} m/s`;
-                            const humidityText = `Humidity: ${humidity} %`;
-                            console.log(`Updating display - ${velocityText}, ${distanceText}, ${stepsText}, ${temperatureText}, ${windSpeedText}, ${humidityText}`);
-                            document.getElementById('info-display').innerHTML = `
-                                <div>${velocityText}</div>
-                                <div>${distanceText}</div>
-                                <div>${stepsText}</div>
-                                <div>${temperatureText}</div>
-                                <div>${windSpeedText}</div>
-                                <div>${humidityText}</div>
-                            `;
-                        } else {
-                            console.warn('Invalid data received:', data);
+                            const scale = 1000;
+                            measure.points[0].position.set(data.x * scale, data.y * scale, data.z * scale);
+                            measure.spheres[0].position.set(data.x * scale, data.y * scale, data.z * scale);
+                            measure.update();
+                            viewer.renderer.render(viewer.scene.scene, viewer.scene.getActiveCamera());
+
+                            const velocity = data.velocity || 0;
+                            const distance = data.distance || 0;
+                            const steps = data.steps || 0;
+                            const temperature = data.weather.temperature || 'N/A';
+                            const windSpeed = data.weather.windSpeed || 'N/A';
+                            const humidity = data.weather.humidity || 'N/A';
+                            const weatherIcon = data.weather.icon ? `http://openweathermap.org/img/wn/${data.weather.icon}@2x.png` : '';
+                            const weatherText = data.weather.icon ? getWeatherDescription(data.weather.icon) : 'N/A';
+
+                            const velocityText = `<i class="fas fa-tachometer-alt"></i> Velocity: ${velocity.toFixed(2)} m/s`;
+                            const distanceText = `<i class="fas fa-ruler"></i> Distance: ${distance.toFixed(2)} m`;
+                            const stepsText = `<i class="fas fa-shoe-prints"></i> Steps: ${Math.round(steps)}`;
+                            const weatherDisplayText = weatherIcon 
+                                ? `<img src="${weatherIcon}" alt="Weather icon" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 8px;"> Weather: ${weatherText}`
+                                : `<i class="fas fa-cloud-sun"></i> Weather: ${weatherText}`;
+                            const temperatureText = `<i class="fas fa-thermometer-half"></i> Temperature: ${temperature} °C`;
+                            const windSpeedText = `<i class="fas fa-wind"></i> Wind Speed: ${windSpeed} m/s`;
+                            const humidityText = `<i class="fas fa-tint"></i> Humidity: ${humidity} %`;
+
+                            console.log(`Updating display - ${velocityText}, ${distanceText}, ${stepsText}, ${weatherDisplayText}, ${temperatureText}, ${windSpeedText}, ${humidityText}`);
+
+                            const infoDisplay = document.getElementById('info-display');
+                            infoDisplay.classList.add('fade');
+                            setTimeout(() => {
+                                infoDisplay.innerHTML = `
+                                    <div>${velocityText}</div>
+                                    <div>${distanceText}</div>
+                                    <div>${stepsText}</div>
+                                    <div class="weather-section">
+                                        <div>${weatherDisplayText}</div>
+                                        <div>${temperatureText}</div>
+                                        <div>${windSpeedText}</div>
+                                        <div>${humidityText}</div>
+                                    </div>
+                                `;
+                                infoDisplay.classList.remove('fade');
+                            }, 500);
                         }
                     })
-                    .catch(error => {
-                        console.error('Error fetching data:', error);
-                    });
+                    .catch(error => console.error('Error fetching data:', error));
             }
 
-            setInterval(pollData, 1000);
+            // Función para obtener la descripción del clima
+            function getWeatherDescription(iconCode) {
+                const weatherDescriptions = {
+                    '01d': 'Clear sky (day)',
+                    '01n': 'Clear sky (night)',
+                    '02d': 'Few clouds (day)',
+                    '02n': 'Few clouds (night)',
+                    '03d': 'Scattered clouds',
+                    '03n': 'Scattered clouds',
+                    '04d': 'Broken clouds',
+                    '04n': 'Broken clouds',
+                    '09d': 'Shower rain',
+                    '09n': 'Shower rain',
+                    '10d': 'Rain (day)',
+                    '10n': 'Rain (night)',
+                    '11d': 'Thunderstorm',
+                    '11n': 'Thunderstorm',
+                    '13d': 'Snow',
+                    '13n': 'Snow',
+                    '50d': 'Mist',
+                    '50n': 'Mist'
+                };
+                return weatherDescriptions[iconCode] || 'Unknown';
+            }
+
+            setInterval(pollData, 5000);
             pollData();
         });
     </script>
