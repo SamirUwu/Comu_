@@ -44,7 +44,7 @@ def send_loc(lat, lon, alt, vel, timestamp, steps):
         "Longitude": lon,
         "Altitude": alt,
         "Velocity": vel,
-        "TimeStamp": timestamp,
+        "timestamp": timestamp,
         "StepCount": steps
     })
     result = client.publish(TOPIC, mensaje)
