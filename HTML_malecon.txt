@@ -110,6 +110,9 @@
 
     <script>
         window.viewer = new Potree.Viewer(document.getElementById("potree_render_area"));
+        colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0x00ffff, 0xff00ff, 0x000000, 0xffffff, 0x808000, 0x800080];
+        colorIndex = 0;
+        theColor = new Map();
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
         viewer.setPointBudget(2_000_000);
@@ -158,8 +161,7 @@
                 name: "Dynamic Marker"
             });
 
-            measure.spheres[0].material.color.setHex(0xff0000);
-            measure.spheres[0].scale.set(5, 5, 5);
+            
 
             function pollData() {
                 fetch('http://localhost:80/api/latestPoint')
@@ -172,6 +174,13 @@
                         console.log('Received data:', data);
                         if (data && data.x !== undefined && data.y !== undefined && data.z !== undefined) {
                             // Assuming you removed the scale factor as it was causing issues
+                            measure.spheres[0].scale.set(5, 5, 5);
+                            if (!theColor.has(data.phone)) {
+                                theColor.set(data.phone, colors[colorIndex++]);
+                                console.log(theColor);
+                                if (colorIndex === colors.length) colorIndex = 0;
+                            }
+                            measure.spheres[0].material.color.setHex(theColor.get(data.phone));
                             measure.points[0].position.set(data.x, data.y, data.z);
                             measure.spheres[0].position.set(data.x, data.y, data.z);
                             console.log('Marker position set to:', measure.spheres[0].position);
