@@ -14,6 +14,7 @@ TOPIC = os.getenv("TOPIC")
 CERTIFICATE_PATH = os.getenv("CERTIFICATE_PATH")
 PRIVATE_KEY_PATH = os.getenv("PRIVATE_KEY_PATH")
 ROOT_CA_PATH = os.getenv("ROOT_CA_PATH")
+PHONE = os.getenv("PHONE")
 
 UDP_IP = '0.0.0.0'
 UDP_PORT = 6565
@@ -40,6 +41,7 @@ sock.bind((UDP_IP, UDP_PORT))
 
 def send_loc(lat, lon, alt, vel, timestamp, steps):
     mensaje = json.dumps({
+        "phone": PHONE,
         "Latitude": lat,
         "Longitude": lon,
         "Altitude": alt,
