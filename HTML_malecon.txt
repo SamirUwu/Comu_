@@ -171,20 +171,24 @@
                     .then(data => {
                         console.log('Received data:', data);
                         if (data && data.x !== undefined && data.y !== undefined && data.z !== undefined) {
-                            const scale = 1000;
-                            measure.points[0].position.set(data.x * scale, data.y * scale, data.z * scale);
-                            measure.spheres[0].position.set(data.x * scale, data.y * scale, data.z * scale);
+                            // Assuming you removed the scale factor as it was causing issues
+                            measure.points[0].position.set(data.x, data.y, data.z);
+                            measure.spheres[0].position.set(data.x, data.y, data.z);
+                            console.log('Marker position set to:', measure.spheres[0].position);
                             measure.update();
                             viewer.renderer.render(viewer.scene.scene, viewer.scene.getActiveCamera());
+                            // Remove viewer.fitToScreen() from here to prevent auto-zoom
 
                             const velocity = data.velocity || 0;
                             const distance = data.distance || 0;
                             const steps = data.steps || 0;
-                            const temperature = data.weather.temperature || 'N/A';
-                            const windSpeed = data.weather.windSpeed || 'N/A';
-                            const humidity = data.weather.humidity || 'N/A';
-                            const weatherIcon = data.weather.icon ? `http://openweathermap.org/img/wn/${data.weather.icon}@2x.png` : '';
-                            const weatherText = data.weather.icon ? getWeatherDescription(data.weather.icon) : 'N/A';
+                            const temperature = data.weather?.temperature || 'N/A';
+                            const windSpeed = data.weather?.windSpeed || 'N/A';
+                            const humidity = data.weather?.humidity || 'N/A';
+                            const weatherIcon = data.weather?.icon ? `http://openweathermap.org/img/wn/${data.weather.icon}@2x.png` : '';
+                            const weatherText = data.weather?.icon ? getWeatherDescription(data.weather.icon) : 'N/A';
+
+                            console.log('Display data:', { velocity, distance, steps, temperature, windSpeed, humidity, weatherIcon, weatherText });
 
                             const velocityText = `<i class="fas fa-tachometer-alt"></i> Velocity: ${velocity.toFixed(2)} m/s`;
                             const distanceText = `<i class="fas fa-ruler"></i> Distance: ${distance.toFixed(2)} m`;
@@ -195,8 +199,6 @@
                             const temperatureText = `<i class="fas fa-thermometer-half"></i> Temperature: ${temperature} °C`;
                             const windSpeedText = `<i class="fas fa-wind"></i> Wind Speed: ${windSpeed} m/s`;
                             const humidityText = `<i class="fas fa-tint"></i> Humidity: ${humidity} %`;
-
-                            console.log(`Updating display - ${velocityText}, ${distanceText}, ${stepsText}, ${weatherDisplayText}, ${temperatureText}, ${windSpeedText}, ${humidityText}`);
 
                             const infoDisplay = document.getElementById('info-display');
                             infoDisplay.classList.add('fade');
@@ -214,6 +216,8 @@
                                 `;
                                 infoDisplay.classList.remove('fade');
                             }, 500);
+                        } else {
+                            console.error('Invalid data format:', data);
                         }
                     })
                     .catch(error => console.error('Error fetching data:', error));
@@ -244,7 +248,7 @@
                 return weatherDescriptions[iconCode] || 'Unknown';
             }
 
-            setInterval(pollData, 5000);
+            setInterval(pollData, 8000);
             pollData();
         });
     </script>
