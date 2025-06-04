@@ -113,6 +113,7 @@
         colors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0x00ffff, 0xff00ff, 0x000000, 0xffffff, 0x808000, 0x800080];
         colorIndex = 0;
         theColor = new Map();
+        const toolsByPhone = new Map();
         viewer.setEDLEnabled(true);
         viewer.setFOV(60);
         viewer.setPointBudget(2_000_000);
@@ -148,20 +149,6 @@
             viewer.fitToScreen();
 
             const measuringTool = new Potree.MeasuringTool(viewer);
-            const measure = measuringTool.startInsertion({
-                showDistances: false,
-                showAngles: false,
-                showCoordinates: true,
-                showArea: false,
-                showCircle: false,
-                showHeight: false,
-                showAzimuth: false,
-                showEdges: false,
-                maxMarkers: 1,
-                name: "Dynamic Marker"
-            });
-
-            
 
             function pollData() {
                 fetch('http://localhost:80/api/latestPoint')
@@ -173,58 +160,76 @@
                     .then(data => {
                         console.log('Received data:', data);
                         if (data && data.x !== undefined && data.y !== undefined && data.z !== undefined) {
-                            // Assuming you removed the scale factor as it was causing issues
-                            measure.spheres[0].scale.set(5, 5, 5);
-                            if (!theColor.has(data.phone)) {
-                                theColor.set(data.phone, colors[colorIndex++]);
-                                console.log(theColor);
-                                if (colorIndex === colors.length) colorIndex = 0;
+                            if (!toolsByPhone.has(data.phone)) {
+                                const newMeasure = measuringTool.startInsertion({
+                                    showDistances: false,
+                                    showAngles: false,
+                                    showCoordinates: false,
+                                    showArea: false,
+                                    showCircle: false,
+                                    showHeight: false,
+                                    showAzimuth: false,
+                                    showEdges: false,
+                                    maxMarkers: 1,
+                                    name: `Marker for ${data.phone}`
+                                });
+
+                                if (!theColor.has(data.phone)) {
+                                    theColor.set(data.phone, colors[colorIndex++]);
+                                    if (colorIndex === colors.length) colorIndex = 0;
+                                }
+
+                                newMeasure.spheres[0].material.color.setHex(theColor.get(data.phone));
+                                toolsByPhone.set(data.phone, newMeasure);
                             }
-                            measure.spheres[0].material.color.setHex(theColor.get(data.phone));
-                            measure.points[0].position.set(data.x, data.y, data.z);
-                            measure.spheres[0].position.set(data.x, data.y, data.z);
-                            console.log('Marker position set to:', measure.spheres[0].position);
-                            measure.update();
+                            const thisTool = toolsByPhone.get(data.phone);
+                            thisTool.points[0].position.set(data.x, data.y, data.z);
+                            thisTool.spheres[0].position.set(data.x, data.y, data.z);
+                            thisTool.spheres[0].scale.set(5, 5, 5);
+                            thisTool.update();
+                            console.log('Marker position set to:', thisTool.spheres[0].position);
+
                             viewer.renderer.render(viewer.scene.scene, viewer.scene.getActiveCamera());
                             // Remove viewer.fitToScreen() from here to prevent auto-zoom
+                            if (data.phone === "3014339305") {
+                                const velocity = data.velocity || 0;
+                                const distance = data.distance || 0;
+                                const steps = data.steps || 0;
+                                const temperature = data.weather?.temperature || 'N/A';
+                                const windSpeed = data.weather?.windSpeed || 'N/A';
+                                const humidity = data.weather?.humidity || 'N/A';
+                                const weatherIcon = data.weather?.icon ? `http://openweathermap.org/img/wn/${data.weather.icon}@2x.png` : '';
+                                const weatherText = data.weather?.icon ? getWeatherDescription(data.weather.icon) : 'N/A';
 
-                            const velocity = data.velocity || 0;
-                            const distance = data.distance || 0;
-                            const steps = data.steps || 0;
-                            const temperature = data.weather?.temperature || 'N/A';
-                            const windSpeed = data.weather?.windSpeed || 'N/A';
-                            const humidity = data.weather?.humidity || 'N/A';
-                            const weatherIcon = data.weather?.icon ? `http://openweathermap.org/img/wn/${data.weather.icon}@2x.png` : '';
-                            const weatherText = data.weather?.icon ? getWeatherDescription(data.weather.icon) : 'N/A';
+                                console.log('Display data:', { velocity, distance, steps, temperature, windSpeed, humidity, weatherIcon, weatherText });
 
-                            console.log('Display data:', { velocity, distance, steps, temperature, windSpeed, humidity, weatherIcon, weatherText });
+                                const velocityText = `<i class="fas fa-tachometer-alt"></i> Velocity: ${velocity.toFixed(2)} m/s`;
+                                const distanceText = `<i class="fas fa-ruler"></i> Distance: ${distance.toFixed(2)} m`;
+                                const stepsText = `<i class="fas fa-shoe-prints"></i> Steps: ${Math.round(steps)}`;
+                                const weatherDisplayText = weatherIcon 
+                                    ? `<img src="${weatherIcon}" alt="Weather icon" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 8px;"> Weather: ${weatherText}`
+                                    : `<i class="fas fa-cloud-sun"></i> Weather: ${weatherText}`;
+                                const temperatureText = `<i class="fas fa-thermometer-half"></i> Temperature: ${temperature} °C`;
+                                const windSpeedText = `<i class="fas fa-wind"></i> Wind Speed: ${windSpeed} m/s`;
+                                const humidityText = `<i class="fas fa-tint"></i> Humidity: ${humidity} %`;
 
-                            const velocityText = `<i class="fas fa-tachometer-alt"></i> Velocity: ${velocity.toFixed(2)} m/s`;
-                            const distanceText = `<i class="fas fa-ruler"></i> Distance: ${distance.toFixed(2)} m`;
-                            const stepsText = `<i class="fas fa-shoe-prints"></i> Steps: ${Math.round(steps)}`;
-                            const weatherDisplayText = weatherIcon 
-                                ? `<img src="${weatherIcon}" alt="Weather icon" style="width: 30px; height: 30px; vertical-align: middle; margin-right: 8px;"> Weather: ${weatherText}`
-                                : `<i class="fas fa-cloud-sun"></i> Weather: ${weatherText}`;
-                            const temperatureText = `<i class="fas fa-thermometer-half"></i> Temperature: ${temperature} °C`;
-                            const windSpeedText = `<i class="fas fa-wind"></i> Wind Speed: ${windSpeed} m/s`;
-                            const humidityText = `<i class="fas fa-tint"></i> Humidity: ${humidity} %`;
-
-                            const infoDisplay = document.getElementById('info-display');
-                            infoDisplay.classList.add('fade');
-                            setTimeout(() => {
-                                infoDisplay.innerHTML = `
-                                    <div>${velocityText}</div>
-                                    <div>${distanceText}</div>
-                                    <div>${stepsText}</div>
-                                    <div class="weather-section">
-                                        <div>${weatherDisplayText}</div>
-                                        <div>${temperatureText}</div>
-                                        <div>${windSpeedText}</div>
-                                        <div>${humidityText}</div>
-                                    </div>
-                                `;
-                                infoDisplay.classList.remove('fade');
-                            }, 500);
+                                const infoDisplay = document.getElementById('info-display');
+                                infoDisplay.classList.add('fade');
+                                setTimeout(() => {
+                                    infoDisplay.innerHTML = `
+                                        <div>${velocityText}</div>
+                                        <div>${distanceText}</div>
+                                        <div>${stepsText}</div>
+                                        <div class="weather-section">
+                                            <div>${weatherDisplayText}</div>
+                                            <div>${temperatureText}</div>
+                                            <div>${windSpeedText}</div>
+                                            <div>${humidityText}</div>
+                                        </div>
+                                    `;
+                                    infoDisplay.classList.remove('fade');
+                                }, 500);
+                            }
                         } else {
                             console.error('Invalid data format:', data);
                         }

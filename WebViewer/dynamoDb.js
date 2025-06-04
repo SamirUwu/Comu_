@@ -38,16 +38,13 @@ function haversine(lat1, lon1, lat2, lon2) {
  */
 const getData = async () => {
   const params = { TableName: 'Positions' };
-
   try {
     const data = await dynamoDbClient.send(new ScanCommand(params));
-
     if (data.Items && data.Items.length > 0) {
       // === Mapeo y validación de datos ===
       const items = data.Items.map(item => {
         const mapData = item['Latitude, Longitude, TimeStamp']?.M;
         if (!mapData) return null;
-
         const timestampRaw = mapData.timestamp?.S;
         if (!timestampRaw) return null;
 
@@ -76,19 +73,26 @@ const getData = async () => {
           lat: 0, lon: 0, phone: ''
         };
       }
-
-      // === Ordena por tiempo ascendente ===
+      
       const sorted = items.sort((a, b) => a.timestamp - b.timestamp);
-
+      
       // Filtra puntos nuevos desde el último timestamp procesado
       const newPoints = lastTimestamp ? sorted.filter(p => p.timestamp > lastTimestamp) : sorted;
+      
+      const latest = newPoints[newPoints.length - 1];
+      const [xUTM, yUTM] = proj4('EPSG:4326', 'EPSG:32618', [latest.lon, latest.lat]);
+      const relativeZ = (latest.alt + 38); // Ajuste visual
+      if (latest.phone != "3014339305") {
+        return {
+          x: xUTM,
+          y: yUTM,
+          z: relativeZ,
+          phone: latest.phone
+        };
+      }
 
       // Si no hay nuevos puntos, usa el último para mostrar posición actual
       if (newPoints.length === 0) {
-        const latest = sorted[sorted.length - 1];
-        const [xUTM, yUTM] = proj4('EPSG:4326', 'EPSG:32618', [latest.lon, latest.lat]);
-        const relativeZ = (latest.alt + 38); // Ajuste a altitud
-
         console.log('Último dato:');
         console.log(`Latitud: ${latest.lat}`);
         console.log(`Longitud: ${latest.lon}`);
@@ -123,10 +127,6 @@ const getData = async () => {
         lastLon = point.lon;
         lastTimestamp = point.timestamp;
       }
-
-      const latest = newPoints[newPoints.length - 1];
-      const [xUTM, yUTM] = proj4('EPSG:4326', 'EPSG:32618', [latest.lon, latest.lat]);
-      const relativeZ = (latest.alt + 38); // Ajuste visual
 
       console.log('Último dato:');
       console.log(`Latitud: ${latest.lat}`);
