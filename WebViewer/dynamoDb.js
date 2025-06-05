@@ -40,6 +40,7 @@ const getData = async () => {
   const params = { TableName: 'Positions' };
   try {
     const data = await dynamoDbClient.send(new ScanCommand(params));
+    console.log('Raw DynamoDB data:', JSON.stringify(data.Items, null, 2));
     if (data.Items && data.Items.length > 0) {
       // === Mapeo y validación de datos ===
       const items = data.Items.map(item => {
