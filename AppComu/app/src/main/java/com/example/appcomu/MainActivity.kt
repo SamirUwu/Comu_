@@ -9,6 +9,7 @@ import android.hardware.SensorManager
 import android.os.Bundle
 import android.util.Log
 import android.widget.TextView
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -31,6 +32,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvTimestamp: TextView
     private lateinit var tvVelocity: TextView
     private lateinit var tvSteps: TextView
+    private lateinit var etPhone: EditText
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
     private var stepCount = 0
@@ -48,6 +50,7 @@ class MainActivity : AppCompatActivity() {
         tvAltitude = findViewById(R.id.tv_altitude)
         tvVelocity = findViewById(R.id.tv_velocity)
         tvSteps = findViewById(R.id.tv_steps)
+        etPhone = findViewById(R.id.et_phone)
         tvTimestamp = findViewById(R.id.time_stamp)
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -94,8 +97,8 @@ class MainActivity : AppCompatActivity() {
     private fun startLocationUpdates() {
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 2000L)
-            .setMinUpdateIntervalMillis(2000L)
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 8000L)
+            .setMinUpdateIntervalMillis(8000L)
             .build()
 
         val locationCallback = object : LocationCallback() {
@@ -108,6 +111,7 @@ class MainActivity : AppCompatActivity() {
                     val hasSpeed = location.hasSpeed()
                     val velocity = if (hasSpeed) location.speed else -1f  // -1 indica "no disponible"
                     val formattedTime = SimpleDateFormat("yyyy-MM-dd - HH:mm:ss", Locale.getDefault()).format(Date(timestamp))
+                    val phone = etPhone.text.toString().trim()
 
                     tvTimestamp.text = "Time Stamp: $formattedTime"
                     tvLatitude.text = "Latitud: $latitude"
@@ -117,7 +121,7 @@ class MainActivity : AppCompatActivity() {
                         "Velocidad: %.2f m/s".format(velocity)
                     else
                         "Velocidad no disponible"
-                    message = "$latitude;$longitude;$altitude;$velocity;$formattedTime;$stepCount"
+                    message = "$latitude;$longitude;$altitude;$velocity;$formattedTime;$stepCount;$phone"
                     Log.d("LOCATION_UPDATE", message)
                     showToast("hasSpeed: $hasSpeed, speed: $velocity m/s")
                     sendUDP(domain)
